@@ -34,8 +34,7 @@ public class LoginCheckFilter implements Filter {
                 "/static/backend/**",
                 "/static/front/**",
                 "/user/sendMsg",
-                "/user/login",
-                "/dish/list"
+                "/user/login"
         };
         // 2. 判断本次请求是否要处理
         if (check(urls, requestURI)){

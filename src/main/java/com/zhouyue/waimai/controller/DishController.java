@@ -10,11 +10,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @RestController
 @Slf4j
@@ -27,6 +29,8 @@ public class DishController {
     private DishFlavorService dishFlavorService;
     @Autowired
     private CategoryService categoryService;
+    @Autowired
+    private RedisTemplate redisTemplate;
 
     /**
      * 获得所有菜品信息
@@ -62,6 +66,10 @@ public class DishController {
      */
     @PostMapping
     public R<String> save(@RequestBody DishDto dishDto){
+        //每次新增，清理对应分类缓存
+        Long categoryId = dishDto.getCategoryId();
+        String key = "dish_" + categoryId;
+        redisTemplate.delete(key);
         dishService.save(dishDto);
         log.info(dishDto.getId().toString());
         for (DishFlavor flavor : dishDto.getFlavors()) {
@@ -92,6 +100,10 @@ public class DishController {
      */
     @PutMapping
     public R<String> update(@RequestBody DishDto dishDto){
+        //每次修改，清理对应分类缓存
+        Long categoryId = dishDto.getCategoryId();
+        String key = "dish_" + categoryId;
+        redisTemplate.delete(key);
         dishService.updateById(dishDto);
         // 对于口味的配置我们选择先删除之前的口味再添加当前口味
         Long id = dishDto.getId();
@@ -157,6 +169,14 @@ public class DishController {
 //    }
     @GetMapping("/list")
     public R<List<DishDto>> getDishesByCategoryId(Long categoryId, String name){
+        String key = "dish_" + categoryId;
+        //从redis中获取数据
+        List<DishDto> list = (List<DishDto>) redisTemplate.opsForValue().get(key);
+        //存在则直接返回
+        if (list != null){
+            return R.success(list);
+        }
+        //不存在则查询数据库，并将菜品缓存到redis
         QueryWrapper<Dish> queryWrapper = new QueryWrapper<>();
         if (StringUtils.isNotEmpty(name)){
             queryWrapper.like("name", name);
@@ -174,6 +194,7 @@ public class DishController {
             dishDto.setFlavors(dishFlavor);
             dishDtoList.add(dishDto);
         }
+        redisTemplate.opsForValue().set(key, dishDtoList, 60, TimeUnit.MINUTES);
         return R.success(dishDtoList);
     }
 }
