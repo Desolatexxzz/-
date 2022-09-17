@@ -14,7 +14,7 @@ public class SMSUtils {
 
     public static void send(String phone, Integer code) {
 
-        DefaultProfile profile = DefaultProfile.getProfile("cn-hangzhou", "LTAI5t9yzaRNPsrEPyBj9hXw", "KOZ9l6z3QygllEUPzB76X3SNvi1EuC");
+        DefaultProfile profile = DefaultProfile.getProfile("****", "****", "****");
         /** use STS Token
          DefaultProfile profile = DefaultProfile.getProfile(
          "<your-region-id>",           // The region ID
